@@ -20,28 +20,28 @@ export default function LoginPage() {
             </div>
 
             {/* Login Card */}
-            <Card className="w-full max-w-md shadow-lg border-primary/10">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-                    <CardDescription>
+            <Card className="w-full max-w-sm shadow-md border-primary/10">
+                <CardHeader className="space-y-1 pb-4">
+                    <CardTitle className="text-xl font-bold">Welcome back</CardTitle>
+                    <CardDescription className="text-sm">
                         Enter your credentials to securely access your data.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
+                <CardContent className="space-y-3">
+                    <div className="space-y-1.5">
                         <Label htmlFor="email">Work Email</Label>
                         <Input id="email" type="email" placeholder="m@example.com" required />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                             <Label htmlFor="password">Password</Label>
-                            <Link href="#" className="text-sm font-medium text-primary hover:underline">
+                            <Link href="#" className="text-xs font-medium text-primary hover:underline">
                                 Forgot password?
                             </Link>
                         </div>
                         <Input id="password" type="password" required />
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 pt-1">
                         <Checkbox id="remember" />
                         <label
                             htmlFor="remember"
@@ -51,9 +51,9 @@ export default function LoginPage() {
                         </label>
                     </div>
                 </CardContent>
-                <CardFooter className="flex flex-col gap-4">
+                <CardFooter className="flex flex-col gap-3">
                     <Link href="/vet" className="w-full">
-                        <Button className="w-full shadow-md text-base h-11">Sign in securely</Button>
+                        <Button className="w-full shadow-sm">Sign in securely</Button>
                     </Link>
                     <div className="text-center text-sm">
                         Don't have a clinic account?{" "}
