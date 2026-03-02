@@ -13,19 +13,39 @@ __pycache__/
 *$py.class
 venv/
 env/
+.venv/
+
+# Environment Variables & Secrets (Zero Trust)
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+credentials.json
+service-account.json
 
 # Next.js
 .next/
 out/
+build/
 
 # OS specific
 .DS_Store
 Thumbs.db
 
-# Misc
+# Logging (Secure Local Logs)
 *.log
-
-# Firebase
+logs/
+secure_logs/
 firebase-debug.log
 firebase-debug.*.log
+app.log
+error.log
+
+# Local Databases & Caches
+*.sqlite3
+*.db
+.pytest_cache/
+.coverage
+htmlcov/
