@@ -1,98 +1,258 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function PetDashboard() {
+  const pets = [
+    { id: 1, name: 'Max', breed: 'Golden Retriever', age: '3 yrs', nextVax: 'Oct 12', bgColor: '#FEF08A' }, // Yellow
+    { id: 2, name: 'Luna', breed: 'Persian Cat', age: '2 yrs', nextVax: 'Dec 01', bgColor: '#DBEAFE' }, // Blue
+  ];
 
-export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>HELLO, SENITH</Text>
+            <Text style={styles.subtitle}>Your Digital Vet Book</Text>
+          </View>
+          <TouchableOpacity style={styles.profileBtn}>
+            <IconSymbol name="person.fill" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Actions - Neobrutalism style buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FCE7F3' }]}>
+            <IconSymbol name="calendar" size={24} color="#000" style={{ marginBottom: 8 }} />
+            <Text style={styles.actionBtnText}>Book Visit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FFEDD5' }]}>
+            <IconSymbol name="camera.fill" size={24} color="#000" style={{ marginBottom: 8 }} />
+            <Text style={styles.actionBtnText}>Skin Scan</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#D1FAE5' }]}>
+            <IconSymbol name="pill.fill" size={24} color="#000" style={{ marginBottom: 8 }} />
+            <Text style={styles.actionBtnText}>Pharmacy</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>MY PETS</Text>
+
+        {/* Pet Cards */}
+        {pets.map((pet) => (
+          <TouchableOpacity key={pet.id} style={[styles.petCard, { backgroundColor: pet.bgColor }]}>
+            <View style={styles.petCardHeader}>
+              <View>
+                <Text style={styles.petName}>{pet.name}</Text>
+                <Text style={styles.petBreed}>{pet.breed} • {pet.age}</Text>
+              </View>
+              <View style={styles.iconCircle}>
+                <IconSymbol name="pawprint.fill" size={20} color="#000" />
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.petCardFooter}>
+              <View>
+                <Text style={styles.footerLabel}>Next Vaccination</Text>
+                <Text style={styles.footerValue}>{pet.nextVax}</Text>
+              </View>
+              <TouchableOpacity style={styles.viewBookBtn}>
+                <Text style={styles.viewBookBtnText}>Open VetBook</Text>
+                <IconSymbol name="chevron.right" size={16} color="#000" />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        {/* Add New Pet Button */}
+        <TouchableOpacity style={styles.addPetBtn}>
+          <IconSymbol name="plus" size={20} color="#000" style={{ marginRight: 8 }} />
+          <Text style={styles.addPetBtnText}>ADD NEW PET</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF9F6', // Off-white modern background
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+    marginTop: 10,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#000',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#666',
+    marginTop: 4,
+  },
+  profileBtn: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // Neobrutalism shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+
+  actionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  actionBtn: {
+    flex: 1,
+    height: 100,
+    marginHorizontal: 4,
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  actionBtnText: {
+    fontWeight: '800',
+    fontSize: 14,
+    color: '#000',
+  },
+
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#000',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+
+  petCard: {
+    borderWidth: 3,
+    borderColor: '#000',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 6, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  petCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  petName: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#000',
+  },
+  petBreed: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#444',
+    marginTop: 4,
+  },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  divider: {
+    height: 2,
+    backgroundColor: '#000',
+    opacity: 0.2,
+    marginVertical: 16,
+  },
+  petCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  footerLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#444',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  footerValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#000',
+  },
+  viewBookBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  viewBookBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000',
+    marginRight: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+
+  addPetBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderWidth: 3,
+    borderColor: '#000',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addPetBtnText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#000',
   },
 });
