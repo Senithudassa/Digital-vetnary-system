@@ -1,107 +1,177 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Search, Filter } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Activity, ShieldCheck, Clock, GitMerge, FileType2, Target, AlertTriangle } from "lucide-react"
 
 export default function MainAdminPage() {
-    const clinics = [
-        { id: "CL-01", name: "River Edge Vet Hospital", location: "Colombo", status: "Active", revenue: "Rs. 450,000", patients: 142 },
-        { id: "CL-02", name: "Pet Care Center", location: "Kandy", status: "Active", revenue: "Rs. 280,000", patients: 89 },
-        { id: "CL-03", name: "Paws & Claws", location: "Galle", status: "Pending", revenue: "-", patients: 0 },
-        { id: "CL-04", name: "City Vet Clinic", location: "Colombo", status: "Suspended", revenue: "Rs. 12,000", patients: 4 },
+
+    // Tech Support Live View
+    const activeClinics = [
+        { id: "CL-01", name: "River Edge Vet", status: "Online", errors: 0, lastSync: "2 mins ago" },
+        { id: "CL-02", name: "Pet Care Center", status: "Online", errors: 2, lastSync: "1 min ago" },
+        { id: "CL-04", name: "City Vet Clinic", status: "Offline", errors: 0, lastSync: "4 hrs ago" },
+    ]
+
+    // Git-style Authorization Queue
+    const pendingCommits = [
+        { id: "PR-892", commitMsg: "Update CL-01 Platform Discount Tier to 20%", author: "Admin Sarah", time: "10:15 AM", diff: "+5% Discount", risk: "Low" },
+        { id: "PR-893", commitMsg: "Reset Password for Dr. Silva (CL-02)", author: "Admin Mike", time: "11:05 AM", diff: "Auth Token Reset", risk: "High" },
+    ]
+
+    // 12:00 PM Deployment Queue
+    const approvedDeployments = [
+        { id: "PR-890", commitMsg: "Fix timezone bug in VetBook timeline UI", author: "System Auto", approvedBy: "Main Admin Dev" },
+        { id: "PR-891", commitMsg: "Revoke API access for suspended CL-03", author: "Admin Sarah", approvedBy: "Main Admin Dev" },
     ]
 
     return (
-        <div className="space-y-8 p-4">
+        <div className="space-y-8 p-4 max-w-7xl mx-auto">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">System Overview</h1>
-                    <p className="text-muted-foreground mt-1">Monitor all registered clinics and system-wide analytics.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">System Control (Main Admin)</h1>
+                    <p className="text-muted-foreground mt-1">Tech support, branch impersonation, and Git-style daily deploy authorizations.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button><PlusCircle className="mr-2 h-4 w-4" /> Register Clinic</Button>
+                    <Button variant="destructive"><AlertTriangle className="mr-2 h-4 w-4" /> Emergency Halt Deploy</Button>
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="bg-primary text-primary-foreground">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <CardTitle className="text-sm font-medium">Pending Commits</CardTitle>
+                        <ShieldCheck className="h-4 w-4 text-primary-foreground/70" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">Rs. 1,245,000</div>
-                        <p className="text-xs text-muted-foreground">+14% from last month</p>
+                        <div className="text-2xl font-bold">2 Awaiting Approval</div>
+                        <p className="text-xs text-primary-foreground/80 mt-1">From Minor Admins</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="border-green-500/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Clinics</CardTitle>
+                        <CardTitle className="text-sm font-medium text-green-700">Next Daily Deploy</CardTitle>
+                        <Clock className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">42</div>
-                        <p className="text-xs text-muted-foreground">+2 new this month</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-amber-500">8</div>
-                        <p className="text-xs text-muted-foreground">Requires your review</p>
+                        <div className="text-2xl font-bold text-green-600">12:00 PM</div>
+                        <p className="text-xs text-muted-foreground mt-1">2 updates queued for push</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">System Health</CardTitle>
+                        <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">Great</div>
-                        <p className="text-xs text-muted-foreground">99.9% uptime</p>
+                        <div className="text-2xl font-bold">38 / 42 Online</div>
+                        <p className="text-xs text-amber-600 mt-1">2 non-critical errors reported</p>
                     </CardContent>
                 </Card>
             </div>
 
+            <div className="grid gap-8 grid-cols-1 lg:grid-cols-2">
+
+                {/* Tech Support Live View & Impersonation */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Tech Support Live View</CardTitle>
+                        <CardDescription>
+                            Monitor branch statuses. If a Vet calls with an issue, securely impersonate their dashboard to troubleshoot.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Branch</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Errors</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {activeClinics.map((clinic, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell className="font-medium">{clinic.id} - {clinic.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={clinic.status === 'Online' ? 'default' : 'secondary'} className={clinic.status === 'Online' ? 'bg-green-500 hover:bg-green-600' : ''}>
+                                                {clinic.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className={clinic.errors > 0 ? 'text-amber-500 font-bold' : 'text-muted-foreground'}>{clinic.errors}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="outline" size="sm">Impersonate View</Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                {/* Git-Style Authorization Queue */}
+                <Card className="border-primary/20 shadow-sm">
+                    <CardHeader className="bg-primary/5 pb-4 border-b">
+                        <CardTitle className="flex items-center gap-2"><GitMerge className="h-5 w-5 text-primary" /> Commit Authorizations</CardTitle>
+                        <CardDescription>
+                            Review system configuration changes proposed by Minor Admins ("Pull Requests"). Approved changes are merged into the 12:00 PM deploy.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="space-y-4">
+                            {pendingCommits.map((commit, i) => (
+                                <div key={i} className="flex flex-col gap-3 p-4 border rounded-lg bg-card">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge variant="outline" className="font-mono text-[10px]">{commit.id}</Badge>
+                                                <span className="font-medium text-sm">{commit.commitMsg}</span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Authored by {commit.author} at {commit.time}</p>
+                                        </div>
+                                        <Badge variant={commit.risk === 'High' ? 'destructive' : 'secondary'}>{commit.risk} Risk</Badge>
+                                    </div>
+                                    <div className="bg-muted/50 p-2 rounded text-xs font-mono text-green-600 border border-green-500/20">
+                                        {commit.diff}
+                                    </div>
+                                    <div className="flex gap-2 justify-end mt-2">
+                                        <Button variant="outline" size="sm" className="h-8">Reject</Button>
+                                        <Button size="sm" className="h-8 bg-primary">Authorize Merge</Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+            </div>
+
+            {/* 12:00 PM Deployment Status */}
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Registered Clinics</CardTitle>
-                        <CardDescription>Manage veterinary partners across the country.</CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                            <Filter className="mr-2 h-4 w-4" /> Filter
-                        </Button>
-                    </div>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Scheduled 12:00 PM Deployment Log</CardTitle>
+                    <CardDescription>
+                        These authorized commits are queued and will automatically push to live Vet branches at exactly 12:00 PM today.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>Clinic Name</TableHead>
-                                <TableHead>Location</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Patients (30d)</TableHead>
-                                <TableHead className="text-right">Revenue</TableHead>
+                                <TableHead className="w-[100px]">Commit ID</TableHead>
+                                <TableHead>Commit Message</TableHead>
+                                <TableHead>Original Author</TableHead>
+                                <TableHead className="text-right">Authorized By</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {clinics.map((clinic) => (
-                                <TableRow key={clinic.id}>
-                                    <TableCell className="font-medium">{clinic.id}</TableCell>
-                                    <TableCell>{clinic.name}</TableCell>
-                                    <TableCell>{clinic.location}</TableCell>
-                                    <TableCell>
-                                        <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold
-                                            ${clinic.status === 'Active' ? 'border-green-500 text-green-700 bg-green-50' :
-                                                clinic.status === 'Pending' ? 'border-amber-500 text-amber-700 bg-amber-50' :
-                                                    'border-red-500 text-red-700 bg-red-50'}`}>
-                                            {clinic.status}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">{clinic.patients}</TableCell>
-                                    <TableCell className="text-right font-medium">{clinic.revenue}</TableCell>
+                            {approvedDeployments.map((deploy) => (
+                                <TableRow key={deploy.id}>
+                                    <TableCell className="font-medium font-mono text-muted-foreground">{deploy.id}</TableCell>
+                                    <TableCell className="font-semibold">{deploy.commitMsg}</TableCell>
+                                    <TableCell>{deploy.author}</TableCell>
+                                    <TableCell className="text-right text-muted-foreground">{deploy.approvedBy}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
