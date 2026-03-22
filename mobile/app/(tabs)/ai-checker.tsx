@@ -1,10 +1,56 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
+import { usePets } from '@/hooks/usePets';
+
+// Simulated AI result until the model endpoint is live
+const MOCK_RESULT = {
+    diagnosis: 'Flea Allergy Dermatitis',
+    confidence: 0.78,
+    severity: 'medium' as const,
+};
 
 export default function ScannerScreen() {
+    const { user } = useAuth();
+    const { pets } = usePets();
     const [hasScanned, setHasScanned] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    const handleScan = () => {
+        // In production: open camera/gallery and upload image to Supabase Storage
+        // For now, simulate a scan and proceed to the result screen
+        setHasScanned(true);
+        setSaved(false);
+    };
+
+    const handleSaveResult = async () => {
+        if (!user) { Alert.alert('Error', 'Please log in first.'); return; }
+        if (pets.length === 0) { Alert.alert('No Pets', 'Add a pet first before saving a scan.'); return; }
+
+        setSaving(true);
+        // Save the scan result to Supabase — using first pet for now
+        const { error } = await supabase.from('skin_scans').insert({
+            pet_id: pets[0].id,
+            scanned_by: user.id,
+            image_url: 'placeholder://scan', // real URL comes from Storage upload
+            ai_result: MOCK_RESULT.diagnosis,
+            confidence_score: MOCK_RESULT.confidence,
+            severity: MOCK_RESULT.severity,
+            vet_reviewed: false,
+        });
+
+        setSaving(false);
+        if (error) {
+            Alert.alert('Save Failed', error.message);
+        } else {
+            setSaved(true);
+            Alert.alert('Saved', 'Scan result saved to your pet\'s record!');
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -23,11 +69,11 @@ export default function ScannerScreen() {
                         </View>
                         <TouchableOpacity
                             style={[styles.primaryActionBtn, { backgroundColor: '#FFEDD5' }]}
-                            onPress={() => setHasScanned(true)}
+                            onPress={handleScan}
                         >
                             <Text style={styles.primaryActionText}>Take Photo</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.secondaryActionBtn, { marginTop: 16 }]}>
+                        <TouchableOpacity style={[styles.secondaryActionBtn, { marginTop: 16 }]} onPress={handleScan}>
                             <Text style={styles.secondaryActionText}>Upload from Gallery</Text>
                         </TouchableOpacity>
                     </View>
@@ -36,7 +82,7 @@ export default function ScannerScreen() {
                         <View style={styles.resultsCard}>
                             <View style={styles.resultsHeader}>
                                 <Text style={styles.resultsTitle}>ANALYSIS COMPLETE</Text>
-                                <IconSymbol name="checkmark.seal.fill" size={32} color="#2500fa" />
+                                <IconSymbol name="checkmark.seal.fill" size={32} color="#818CF8" />
                             </View>
 
                             <View style={styles.imagePreviewBox}>
@@ -49,18 +95,33 @@ export default function ScannerScreen() {
                             <View style={styles.severityBlock}>
                                 <Text style={styles.severityLabel}>Risk Level</Text>
                                 <View style={styles.severityBadge}>
-                                    <Text style={styles.severityLevelText}>MODERATE</Text>
+                                    <Text style={styles.severityLevelText}>{MOCK_RESULT.severity.toUpperCase()}</Text>
                                 </View>
                             </View>
 
                             <Text style={styles.diagnosisText}>
-                                The AI has detected signs consistent with <Text style={{ fontWeight: '900' }}>Flea Allergy Dermatitis</Text>.
+                                The AI has detected signs consistent with <Text style={{ fontWeight: '900' }}>{MOCK_RESULT.diagnosis}</Text>.
                                 This is highly treatable but requires a veterinary consultation.
                             </Text>
+
+                            {/* Save to Record button */}
+                            <TouchableOpacity
+                                style={[styles.primaryActionBtn, { backgroundColor: saved ? '#D1FAE5' : '#FEF08A', marginTop: 20 }]}
+                                onPress={handleSaveResult}
+                                disabled={saving || saved}
+                            >
+                                {saving
+                                    ? <ActivityIndicator color="#000" />
+                                    : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        {saved && <IconSymbol name="checkmark" size={18} color="#000" />}
+                                        <Text style={styles.primaryActionText}>{saved ? 'Saved to Record' : 'Save to Pet Record'}</Text>
+                                      </View>
+                                }
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.actionRow}>
-                            <TouchableOpacity style={[styles.primaryActionBtn, { backgroundColor: '#D1FAE5', flex: 1, marginRight: 8 }]} onPress={() => setHasScanned(false)}>
+                            <TouchableOpacity style={[styles.primaryActionBtn, { backgroundColor: '#D1FAE5', flex: 1, marginRight: 8 }]} onPress={() => { setHasScanned(false); setSaved(false); }}>
                                 <Text style={styles.primaryActionText}>Scan Again</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={[styles.primaryActionBtn, { backgroundColor: '#FEF08A', flex: 1 }]}>
@@ -81,6 +142,7 @@ export default function ScannerScreen() {
         </SafeAreaView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -217,7 +279,7 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderWidth: 4,
-        borderColor: '#2500fa',
+        borderColor: '#818CF8',
         borderRadius: 8,
     },
     severityBlock: {

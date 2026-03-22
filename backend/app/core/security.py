@@ -31,20 +31,33 @@ async def zero_trust_auth_middleware(request: Request, call_next: Callable):
     
     try:
         # -----------------------------------------------------
-        # ACTUAL ZERO TRUST VERIFICATION via Firebase Admin SDK
+        # ACTUAL ZERO TRUST VERIFICATION via Supabase Auth
         # -----------------------------------------------------
-        # auth.verify_id_token validates the JWT signature, expiration, and issuer.
-        from app.core.firebase import firebase_auth
+        # get_user verifies the JWT with the Supabase auth server and ensures it isn't revoked
+        from app.core.supabase_admin import supabase_admin
         
         # When testing locally without a frontend sending real tokens, we can mock it 
         # But in production, this strict check CANNOT BE BYPASSED.
-        if token == "mock_local_dev_token":
+        from app.core.config import settings
+        if token == "mock_local_dev_token" and settings.ENV != "production":
             logger.info("Local Dev Mock Token detected. Allowing bypass for testing.")
-            request.state.user = {"uid": "mock_vet_123", "role": "vet_branch"}
+            request.state.user = {"uid": "mock_vet_123", "role": "vet"}
         else:
-            decoded_token = firebase_auth.verify_id_token(token)
-            request.state.user = decoded_token 
-            logger.info("Zero Trust Success: Token Verified", extra_info={"uid": decoded_token.get("uid")})
+            if not supabase_admin:
+                raise Exception("Supabase admin client not available.")
+            
+            user_response = supabase_admin.auth.get_user(token)
+            if not user_response or not user_response.user:
+                raise Exception("Invalid Supabase token")
+            
+            # Flatten the User object to match the expected decoded_token shape
+            user_data = {
+                "uid": user_response.user.id,
+                "email": user_response.user.email,
+                "role": user_response.user.app_metadata.get("role", "customer")
+            }
+            request.state.user = user_data 
+            logger.info("Zero Trust Success: Token Verified", extra_info={"uid": user_data.get("uid")})
         
     except Exception as e:
         logger.warning(f"Zero Trust Violation: Invalid token - {str(e)}", extra_info={"ip": request.client.host})

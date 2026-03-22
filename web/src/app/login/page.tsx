@@ -1,79 +1,183 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Activity } from "lucide-react"
+"use client";
 
-export default function LoginPage() {
+import { useState, useEffect, Suspense } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Activity, CheckCircle } from "lucide-react"
+import { useAuth } from "@/context/AuthContext"
+
+// Single source of truth for role → route mapping
+const ROLE_ROUTES: Record<string, string> = {
+    main_admin: "/main-admin",
+    minor_admin: "/minor-admin",
+    vet: "/vet",
+    customer: "/",
+};
+
+function LoginForm() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [justRegistered, setJustRegistered] = useState(false);
+
+    const router = useRouter();
+    const { signIn, role, loading } = useAuth();
+
+    // Banner for users who just registered
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("registered") === "true") setJustRegistered(true);
+    }, []);
+
+    // Once role is set after login, route to the correct dashboard
+    // This fires when onAuthStateChange updates the context
+    useEffect(() => {
+        if (!loading && role) {
+            const destination = ROLE_ROUTES[role] ?? "/";
+            router.push(destination);
+        }
+    }, [role, loading, router]);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setIsLoggingIn(true);
+
+        try {
+            const { error: signInError } = await signIn(email, password);
+
+            if (signInError) {
+                setError(signInError);
+            }
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
+
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="flex min-h-screen flex-col items-center justify-center py-12 px-4 bg-[#FAF9F6]">
 
             {/* Branding */}
-            <div className="flex flex-col items-center mb-8">
-                <Link href="/" className="flex items-center gap-2 mb-2">
-                    <Activity className="h-8 w-8 text-primary" />
-                    <span className="text-3xl font-bold tracking-tight">VetNary<span className="text-primary">.io</span></span>
-                </Link>
-                <p className="text-muted-foreground">Sign in to your specialized portal</p>
-            </div>
+            <Link href="/" className="flex items-center gap-2 mb-8" aria-label="Go to VetNary homepage">
+                <Activity className="h-8 w-8 text-[#818CF8]" aria-hidden="true" />
+                <span className="text-3xl font-black tracking-tight text-black">
+                    VetNary<span className="text-[#818CF8]">.io</span>
+                </span>
+            </Link>
 
-            {/* Login Card */}
-            <Card className="w-full max-w-sm shadow-md border-primary/10">
-                <CardHeader className="space-y-1 pb-4">
-                    <CardTitle className="text-xl font-bold">Welcome back</CardTitle>
-                    <CardDescription className="text-sm">
-                        Enter your credentials to securely access your data.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
+            {/* Card */}
+            <div
+                className="w-full max-w-sm bg-white border-4 border-black rounded-xl overflow-hidden"
+                style={{ boxShadow: "8px 8px 0px #000" }}
+            >
+                {/* Card Header */}
+                <div className="bg-black px-8 py-6">
+                    <h1 className="text-2xl font-black text-white">SIGN IN</h1>
+                    <p className="text-gray-400 font-semibold mt-1 text-sm">
+                        Access your specialized portal securely.
+                    </p>
+                </div>
+
+                <form onSubmit={handleLogin} noValidate aria-label="Sign in form" className="px-8 py-6 space-y-5">
+
+                    {/* Registered Success Banner */}
+                    {justRegistered && (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="flex items-start gap-3 bg-green-50 border-2 border-green-600 text-green-700 text-sm p-3 rounded-md font-semibold"
+                        >
+                            <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                            <span>Account created! Sign in with your new credentials below.</span>
+                        </div>
+                    )}
+
+                    {/* Error Banner */}
+                    {error && (
+                        <div
+                            role="alert"
+                            aria-live="assertive"
+                            className="bg-red-100 border-2 border-red-600 text-red-700 text-sm p-3 rounded-md font-semibold"
+                        >
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Email */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="email">Work Email</Label>
-                        <Input id="email" type="email" placeholder="m@example.com" required />
+                        <label htmlFor="email" className="block text-xs font-black text-black uppercase tracking-wide">
+                            Work Email
+                        </label>
+                        <input
+                            id="email"
+                            type="email"
+                            placeholder="clinic@example.com"
+                            required
+                            aria-required="true"
+                            autoComplete="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full border-black rounded-md px-4 py-3 text-sm font-semibold bg-[#FAF9F6] focus:outline-none focus:ring-3 focus:ring-[#818CF8]"
+                            style={{ borderWidth: "3px" }}
+                        />
                     </div>
+
+                    {/* Password */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="password">Password</Label>
-                            <Link href="#" className="text-xs font-medium text-primary hover:underline">
+                            <label htmlFor="password" className="block text-xs font-black text-black uppercase tracking-wide">
+                                Password
+                            </label>
+                            <Link
+                                href="#"
+                                className="text-xs font-bold text-[#818CF8] hover:underline focus:outline-none focus:ring-2 focus:ring-[#818CF8] rounded"
+                            >
                                 Forgot password?
                             </Link>
                         </div>
-                        <Input id="password" type="password" required />
+                        <input
+                            id="password"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            aria-required="true"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full border-black rounded-md px-4 py-3 text-sm font-semibold bg-[#FAF9F6] focus:outline-none focus:ring-3 focus:ring-[#818CF8]"
+                            style={{ borderWidth: "3px" }}
+                        />
                     </div>
-                    <div className="flex items-center space-x-2 pt-1">
-                        <Checkbox id="remember" />
-                        <label
-                            htmlFor="remember"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                            Remember me for 30 days
-                        </label>
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-3">
-                    <Link href="/vet" className="w-full">
-                        <Button className="w-full shadow-sm">Sign in securely</Button>
-                    </Link>
-                    <div className="text-center text-sm">
-                        Don't have a clinic account?{" "}
-                        <Link href="/register" className="font-semibold text-primary hover:underline">
+
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        disabled={isLoggingIn || loading}
+                        aria-busy={isLoggingIn}
+                        className="w-full bg-[#818CF8] text-white font-black text-base py-4 border-4 border-black rounded-lg transition-transform active:translate-y-1 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-3 focus:ring-offset-2 focus:ring-[#818CF8]"
+                        style={{ boxShadow: "5px 5px 0px #000" }}
+                    >
+                        {isLoggingIn ? "Authenticating..." : "SIGN IN SECURELY"}
+                    </button>
+
+                    <p className="text-center text-sm font-semibold text-gray-600 pt-2">
+                        No clinic account?{" "}
+                        <Link href="/register" className="text-[#818CF8] font-black underline hover:no-underline">
                             Register now
                         </Link>
-                    </div>
-
-                    {/* Phase 2 Mock View Links - Remove in Phase 3 */}
-                    <div className="mt-4 pt-4 border-t w-full text-center">
-                        <p className="text-xs text-muted-foreground mb-2">Role Previews (Phase 2):</p>
-                        <div className="flex justify-center gap-3 text-xs">
-                            <Link href="/main-admin" className="underline hover:text-primary">Main Admin</Link>
-                            <Link href="/minor-admin" className="underline hover:text-primary">Contact Center</Link>
-                            <Link href="/assistant" className="underline hover:text-primary">Till</Link>
-                        </div>
-                    </div>
-                </CardFooter>
-            </Card>
-
+                    </p>
+                </form>
+            </div>
         </div>
-    )
+    );
+}
+
+// Suspense required by Next.js App Router when using useSearchParams/window.location.search in a client component
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
+    );
 }

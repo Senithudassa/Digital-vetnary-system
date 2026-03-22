@@ -7,15 +7,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     SECRET_KEY: str
 
-    # Firebase Config
-    FIREBASE_CREDENTIALS_PATH: str = "service-account.json"
-    FIREBASE_API_KEY: str
-    FIREBASE_AUTH_DOMAIN: str
-    FIREBASE_PROJECT_ID: str
-    FIREBASE_STORAGE_BUCKET: str
-    FIREBASE_MESSAGING_SENDER_ID: str
-    FIREBASE_APP_ID: str
-    FIREBASE_MEASUREMENT_ID: str
+    # Supabase Config
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_ROLE_KEY: str
 
     # AI Config
     AI_MODEL_API_KEY: str

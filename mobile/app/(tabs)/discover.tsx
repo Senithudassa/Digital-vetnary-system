@@ -1,14 +1,33 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { supabase, Clinic } from '@/lib/supabase';
+
+const CLINIC_COLORS = ['#baffc9', '#ffb3ba', '#bae1ff', '#FEF08A', '#FCE7F3'];
 
 export default function DiscoverScreen() {
-    const clinics = [
-        { id: 1, name: 'River Edge Vet Hospital', rating: '4.8', distance: '1.2 km', status: 'Open Now', color: '#baffc9' },
-        { id: 2, name: 'Pet Care Center Colombo', rating: '4.5', distance: '3.4 km', status: 'Closes 8PM', color: '#ffb3ba' },
-        { id: 3, name: 'Paws & Claws Clinic', rating: '4.9', distance: '5.1 km', status: 'Open Now', color: '#bae1ff' },
-    ];
+    const [allClinics, setAllClinics] = useState<Clinic[]>([]);
+    const [search, setSearch] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchClinics = async () => {
+            const { data, error } = await supabase
+                .from('clinics')
+                .select('*')
+                .eq('is_active', true)
+                .order('name', { ascending: true });
+            if (!error && data) setAllClinics(data as Clinic[]);
+            setLoading(false);
+        };
+        fetchClinics();
+    }, []);
+
+    const clinics = allClinics.filter((c) =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.address.toLowerCase().includes(search.toLowerCase())
+    );
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -40,7 +59,7 @@ export default function DiscoverScreen() {
                     <View style={styles.mapGraphic}>
                         <IconSymbol name="map.fill" size={64} color="#000" style={{ opacity: 0.1, position: 'absolute' }} />
                         <View style={styles.mapPin}>
-                            <IconSymbol name="mappin.and.ellipse" size={32} color="#2500fa" />
+                            <IconSymbol name="mappin.and.ellipse" size={32} color="#818CF8" />
                         </View>
                     </View>
                     <TouchableOpacity style={styles.mapActionBtn}>
@@ -51,24 +70,31 @@ export default function DiscoverScreen() {
                 <Text style={styles.sectionTitle}>NEARBY HOSPITALS</Text>
 
                 {/* Clinic Cards */}
-                {clinics.map((clinic) => (
-                    <TouchableOpacity key={clinic.id} style={[styles.clinicCard, { backgroundColor: clinic.color }]}>
+                {loading ? (
+                    <View style={{ alignItems: 'center', padding: 40 }}>
+                        <ActivityIndicator size="large" color="#818CF8" />
+                        <Text style={{ marginTop: 12, fontWeight: '700', color: '#666' }}>Loading clinics...</Text>
+                    </View>
+                ) : clinics.length === 0 ? (
+                    <View style={{ alignItems: 'center', padding: 40 }}>
+                        <Text style={{ fontWeight: '700', color: '#666' }}>
+                            {search ? 'No clinics match your search.' : 'No clinics registered yet.'}
+                        </Text>
+                    </View>
+                ) : clinics.map((clinic, index) => (
+                    <TouchableOpacity key={clinic.id} style={[styles.clinicCard, { backgroundColor: CLINIC_COLORS[index % CLINIC_COLORS.length] }]}>
                         <View style={styles.clinicHeader}>
                             <Text style={styles.clinicName}>{clinic.name}</Text>
-                            <View style={styles.ratingBadge}>
-                                <IconSymbol name="star.fill" size={12} color="#ffbe0a" />
-                                <Text style={styles.ratingText}>{clinic.rating}</Text>
-                            </View>
                         </View>
 
                         <View style={styles.clinicDetailsRow}>
                             <View style={styles.detailItem}>
                                 <IconSymbol name="location.fill" size={14} color="#000" />
-                                <Text style={styles.detailText}>{clinic.distance}</Text>
+                                <Text style={styles.detailText}>{clinic.address}</Text>
                             </View>
                             <View style={styles.detailItem}>
                                 <IconSymbol name="clock.fill" size={14} color="#000" />
-                                <Text style={styles.detailText}>{clinic.status}</Text>
+                                <Text style={styles.detailText}>{clinic.operating_hours}</Text>
                             </View>
                         </View>
 
@@ -76,12 +102,15 @@ export default function DiscoverScreen() {
                             <TouchableOpacity style={styles.primaryActionBtn}>
                                 <Text style={styles.primaryActionText}>Book Now</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.secondaryActionBtn}>
-                                <IconSymbol name="phone.fill" size={16} color="#000" />
-                            </TouchableOpacity>
+                            {clinic.contact ? (
+                                <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => Linking.openURL(`tel:${clinic.contact}`)}>
+                                    <IconSymbol name="phone.fill" size={16} color="#000" />
+                                </TouchableOpacity>
+                            ) : null}
                         </View>
                     </TouchableOpacity>
                 ))}
+
 
             </ScrollView>
         </SafeAreaView>

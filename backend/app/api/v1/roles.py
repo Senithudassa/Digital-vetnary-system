@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
-from app.core.firebase import firebase_auth
+from app.core.supabase_admin import supabase_admin
 from app.core.logging import logger
 
 router = APIRouter()
@@ -13,7 +13,7 @@ class RoleAssignmentRequest(BaseModel):
 @router.post("/assign-role")
 async def assign_custom_role(request: Request, payload: RoleAssignmentRequest):
     """
-    Zero Trust Protected Route: Assigns a persistent Firebase Custom Claim (Role) to a given User UID.
+    Zero Trust Protected Route: Assigns a persistent Supabase Custom Claim (Role) to a given User UID.
     This route can ONLY be called by a 'main_admin'.
     """
     
@@ -43,8 +43,14 @@ async def assign_custom_role(request: Request, payload: RoleAssignmentRequest):
         )
 
     try:
-        # 3. Assign the Custom Claim using Firebase Admin SDK
-        firebase_auth.set_custom_user_claims(payload.uid, {"role": payload.role})
+        if not supabase_admin:
+            raise HTTPException(status_code=500, detail="Supabase Admin not configured.")
+
+        # 3. Assign the Custom Claim using Supabase Admin API
+        supabase_admin.auth.admin.update_user_by_id(
+            payload.uid,
+            {"app_metadata": {"role": payload.role}}
+        )
         
         logger.info(
             f"Successfully assigned role '{payload.role}' to UID '{payload.uid}'", 
@@ -53,8 +59,6 @@ async def assign_custom_role(request: Request, payload: RoleAssignmentRequest):
         
         return {"message": f"Successfully upgraded user {payload.uid} to {payload.role}"}
 
-    except firebase_auth.UserNotFoundError:
-        raise HTTPException(status_code=404, detail="User not found in Firebase.")
     except Exception as e:
         logger.error(f"Failed to assign custom claim: {e}")
         raise HTTPException(status_code=500, detail="Internal server error while assigning role.")

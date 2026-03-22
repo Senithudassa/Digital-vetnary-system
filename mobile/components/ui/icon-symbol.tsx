@@ -22,6 +22,8 @@ const MAPPING = {
   'map.fill': 'map',
   'camera.fill': 'camera-alt',
   'bubble.fill': 'chat',
+  'checkmark': 'check',
+  'checkmark.circle.fill': 'check-circle',
 } as IconMapping;
 
 /**

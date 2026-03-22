@@ -31,17 +31,19 @@ class PIIStrippingFormatter(logging.Formatter):
 
         # Include any extra kwargs passed to the logger
         if hasattr(record, "extra_info"):
-            # Mask PII in extra dictionaries if needed
-            safe_extra = {}
-            for k, v in record.extra_info.items():
-                if isinstance(v, str):
-                    clean_v = v
+            def recursive_mask(item: Any) -> Any:
+                if isinstance(item, str):
+                    clean_v = item
                     for p_type, pat in PII_PATTERNS.items():
                         clean_v = pat.sub(f"[MASKED_{p_type.upper()}]", clean_v)
-                    safe_extra[k] = clean_v
-                else:
-                    safe_extra[k] = v
-            log_data["extra_info"] = safe_extra
+                    return clean_v
+                elif isinstance(item, dict):
+                    return {k: recursive_mask(v) for k, v in item.items()}
+                elif isinstance(item, list):
+                    return [recursive_mask(i) for i in item]
+                return item
+                
+            log_data["extra_info"] = recursive_mask(record.extra_info)
 
         return json.dumps(log_data)
 
