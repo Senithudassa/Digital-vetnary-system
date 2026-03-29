@@ -40,6 +40,7 @@ A veterinary ecosystem for Sri Lanka — turning the traditional physical vet bo
 | Backend API      | Python (FastAPI)                          |
 | Database & Auth  | Supabase (PostgreSQL + Auth + RLS)        |
 | AI               | TensorFlow (Skin Checker) & Google Gemini (Chatbot) |
+| ML Training      | PyTorch (MobileNetV2 Transfer Learning) — Google Colab |
 
 ---
 
@@ -116,6 +117,9 @@ Vetnary-System/
 │   │   └── supabase.ts        # Supabase client + TypeScript type exports
 │   ├── components/             # Shared RN components
 │   └── .env                    # Mobile environment variables
+│
+├── ml/                         # Machine learning training scripts
+│   └── vet_skin_classifier.py  # MobileNetV2 transfer learning (Colab)
 │
 └── README.md                   # ← You are here
 ```
@@ -445,6 +449,91 @@ Configures five bottom tabs with neobrutalist styling:
 - Chat interface with message bubbles
 - Input field with send button
 - Simulated AI responses (real endpoint pending integration)
+
+---
+
+## ML — Skin Disease Classifier (MobileNetV2)
+
+The `ml/` directory contains a Google Colab–ready PyTorch script that fine-tunes **MobileNetV2** via transfer learning to classify veterinary skin images into three categories:
+
+| Class | Description |
+|---|---|
+| `Healthy_Dermis` | Normal, healthy skin |
+| `Mange` | Demodicosis / sarcoptic mange |
+| `Ringworm` | Dermatophytosis (fungal) |
+
+### Dataset
+
+We use the **[Dog's Skin Diseases (Image Dataset)](https://www.kaggle.com/datasets/youssefmohmmed/dogs-skin-diseases-image-dataset)** from Kaggle. This dataset was selected because:
+- It contains high-quality, labelled images that directly map to our 3 target classes
+- Research papers using MobileNetV2 on this dataset report **96–97% validation accuracy**
+- It is purpose-built for AI/ML veterinary classification tasks
+
+**Required folder structure** (PyTorch `ImageFolder` convention):
+
+```
+/content/drive/MyDrive/VetDataset/
+├── train/                    # ~80% of images
+│   ├── Healthy_Dermis/
+│   ├── Mange/
+│   └── Ringworm/
+└── val/                      # ~20% of images
+    ├── Healthy_Dermis/
+    ├── Mange/
+    └── Ringworm/
+```
+
+> If you place all images in a single root with class subdirectories (no `train/`/`val/` split), the script will automatically perform an 80/20 split.
+
+### How to Run (Google Colab)
+
+1. Download the dataset from Kaggle and upload it to your Google Drive at `/MyDrive/VetDataset/`
+2. Open `ml/vet_skin_classifier.py` in Google Colab (File → Upload notebook, or copy-paste into cells)
+3. Set Runtime → Change runtime type → **GPU** (T4 or better)
+4. Run each cell sequentially — the script is divided into 11 clearly-marked cells:
+
+| Cell | Purpose |
+|---|---|
+| 1 | Environment bootstrap & GPU check |
+| 2 | Hyperparameter configuration |
+| 3 | Google Drive mount |
+| 4 | Data loading with augmentation |
+| 5 | Batch visualisation (sanity check) |
+| 6 | Model architecture (frozen MobileNetV2 + custom head) |
+| 7 | Loss, optimiser & LR scheduler setup |
+| 8 | Training loop with early stopping |
+| 9 | Training curve plots |
+| 10 | Model export (`.pt` file) |
+| 11 | Single-image inference test |
+
+### Key Hyperparameters
+
+All hyperparameters are defined in the `CONFIG` dict at the top of the script:
+
+| Parameter | Default | Purpose |
+|---|---|---|
+| `learning_rate` | `1e-3` | Initial Adam LR |
+| `epochs` | `30` | Maximum training epochs |
+| `batch_size` | `32` | Images per batch |
+| `dropout_rate` | `0.35` | Dropout in classifier head |
+| `early_stop_patience` | `7` | Epochs without improvement → stop |
+| `lr_scheduler_patience` | `3` | Epochs of plateau → halve LR |
+
+### Anti-Overfitting Strategy
+
+1. **Frozen backbone** — Only the classifier head is trained (1280→512→128→3)
+2. **Data augmentation** — Random crop, flip, rotation, color jitter, grayscale
+3. **Dropout** — Progressive dropout (0.35 → 0.175 → 0.117) across hidden layers
+4. **BatchNorm** — After each hidden layer for stable gradient flow
+5. **LR scheduling** — `ReduceLROnPlateau` halves LR when val loss stalls
+6. **Early stopping** — Monitors val loss, stops after 7 epochs of no improvement
+7. **L2 regularisation** — Weight decay of `1e-4` in Adam optimiser
+
+### Output
+
+The script saves:
+- `vet_skin_mobilenetv2.pt` — checkpoint with weights, class mapping, config, and normalization stats
+- `training_curves.png` — loss, accuracy, and LR plots
 
 ---
 

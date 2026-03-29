@@ -4,7 +4,7 @@ import { Calendar, Home, Inbox, Search, Settings, Activity, Users, FileText, Ban
 import Link from "next/link"
 import { useAuth } from "@/context/AuthContext"
 import { supabase } from "@/lib/supabase/config"
-
+import { ModeToggle } from "@/components/mode-toggle"
 
 import {
     Sidebar,
@@ -79,18 +79,22 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
 
-            {!loading && role && (
-                <SidebarFooter>
-                    <SidebarMenu>
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem className="flex justify-between items-center mb-2 px-2">
+                        <span className="text-sm font-medium">Theme</span>
+                        <ModeToggle />
+                    </SidebarMenuItem>
+                    {!loading && role && (
                         <SidebarMenuItem>
                             <SidebarMenuButton onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                 <LogOut className="h-4 w-4" />
                                 <span>Sign out</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarFooter>
-            )}
+                    )}
+                </SidebarMenu>
+            </SidebarFooter>
         </Sidebar>
     )
 }
