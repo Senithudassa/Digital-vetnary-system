@@ -3,9 +3,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { PiiStrippingLogger } from './common/logger/pii-stripping.logger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new PiiStrippingLogger(),
+  });
 
   const allowedOrigins = (process.env.FRONTEND_URLS || 'http://localhost:3000')
     // const allowedOrigins = 'http://localhost:3000'

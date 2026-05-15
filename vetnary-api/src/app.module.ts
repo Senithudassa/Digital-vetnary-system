@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -12,6 +12,8 @@ import { AdminModule } from './admin/admin.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AiModule } from './ai/ai.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { AiController } from './ai/ai.controller';
+import { AiQuotaMiddleware } from './common/middleware/ai-quota.middleware';
 
 @Module({
   imports: [
@@ -30,4 +32,10 @@ import { TicketsModule } from './tickets/tickets.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AiQuotaMiddleware)
+      .forRoutes(AiController);
+  }
+}
