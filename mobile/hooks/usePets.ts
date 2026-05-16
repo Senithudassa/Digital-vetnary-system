@@ -1,57 +1,51 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase, Pet } from '@/lib/supabase';
-import { useAuth } from '@/context/AuthContext';
+import { useCallback, useEffect, useState } from "react";
+
+import { api } from "@/lib/api";
+
+export interface Pet {
+  id: string;
+  name: string;
+  species: string;
+  breed?: string;
+  gender?: string;
+  weight?: number;
+  owner_id?: string;
+  isVerified?: boolean;
+}
 
 export function usePets() {
-    const { user } = useAuth();
-    const [pets, setPets] = useState<Pet[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const fetchPets = useCallback(async () => {
-        if (!user) {
-            setPets([]);
-            setLoading(false);
-            return;
-        }
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getPets();
+      setPets(data);
+    } catch (error) {
+      console.error("Failed to fetch pets:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        setLoading(true);
-        setError(null);
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
-        const { data, error: fetchError } = await supabase
-            .from('pets')
-            .select('*')
-            .eq('owner_uid', user.id)
-            .eq('is_active', true)
-            .order('created_at', { ascending: true });
+  const addPet = useCallback(async (petData: Partial<Pet>) => {
+    setLoading(true);
+    try {
+      const data = await api.addPet(petData);
+      setPets((prev) => [...prev, data]);
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Failed to add pet:", error);
+      return { data: null, error: error.message || "Failed to add pet" };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        if (fetchError) {
-            setError(fetchError.message);
-        } else {
-            setPets(data as Pet[]);
-        }
-        setLoading(false);
-    }, [user]);
-
-    useEffect(() => {
-        fetchPets();
-    }, [fetchPets]);
-
-    const addPet = async (petData: Partial<Pet>) => {
-        if (!user) return { error: 'Not logged in' };
-
-        const { error: insertError } = await supabase.from('pets').insert({
-            ...petData,
-            owner_uid: user.id,
-        });
-
-        if (insertError) {
-            console.error("addPet error:", insertError);
-            return { error: insertError.message };
-        }
-        await fetchPets();
-        return { error: null };
-    };
-
-    return { pets, loading, error, refetch: fetchPets, addPet };
+  return { pets, loading, refetch, addPet };
 }

@@ -29,6 +29,8 @@ export default function LoginScreen() {
 
             if (signInError) {
                 setError(signInError);
+            } else {
+                router.replace('/(tabs)');
             }
         } finally {
             setLoading(false);

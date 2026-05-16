@@ -1,130 +1,162 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase/config";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { authService, UserProfile, ClinicDetails } from "@/app/services/auth.service";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
-type AppRole = "vet" | "minor_admin" | "main_admin" | "customer";
+export type AppRole = "vet" | "minor_admin" | "main_admin" | "customer";
 
-interface AuthContextType {
-    user: User | null;
-    role: AppRole | null;
-    loading: boolean;
-    getToken: () => Promise<string | null>;
-    signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-    signOut: () => Promise<void>;
+export type LoginPortal = "vet" | "minor_admin" | "main_admin";
+
+/** Shape stored in localStorage under "vetnary_session" */
+interface StoredSession {
+  access_token: string;
+  refresh_token: string;
+  profile: UserProfile;
+  clinic?: ClinicDetails;
 }
 
-// ─── Context ──────────────────────────────────────────────────────────────────
+interface AuthContextType {
+  user: UserProfile | null;
+  role: AppRole | null;
+  clinic: ClinicDetails | null;
+  loading: boolean;
+  getToken: () => Promise<string | null>;
+  signIn: (
+    portal: LoginPortal,
+    email: string,
+    password: string
+  ) => Promise<{ error: string | null }>;
+  signOut: () => Promise<void>;
+}
+
+// ─── Context ───────────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType>({
-    user: null,
-    role: null,
-    loading: true,
-    getToken: async () => null,
-    signIn: async () => ({ error: null }),
-    signOut: async () => { },
+  user: null,
+  role: null,
+  clinic: null,
+  loading: true,
+  getToken: async () => null,
+  signIn: async () => ({ error: null }),
+  signOut: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-// ─── Helper: fetch role from profiles table ───────────────────────────────────
-// We intentionally read from public.profiles (not app_metadata) because:
-// • app_metadata is only writable by the service role key
-// • signUp() only sets raw_user_meta_data, which is user-controlled
-// • The handle_new_user trigger always writes the correct role into profiles
-async function fetchRoleFromProfile(userId: string): Promise<AppRole | null> {
-    const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
-    if (error || !data) return null;
-    return data.role as AppRole;
+const SESSION_KEY = "vetnary_session";
+
+function roleFromProfile(profile: UserProfile): AppRole {
+  const r = profile.role?.toUpperCase();
+  if (r === "VET") return "vet";
+  if (r === "ADMIN" || r === "MAIN_ADMIN") return "main_admin";
+  if (r === "MINOR_ADMIN") return "minor_admin";
+  return "customer";
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+// ─── Provider ──────────────────────────────────────────────────────────────────
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [role, setRole] = useState<AppRole | null>(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [clinic, setClinic] = useState<ClinicDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    // Called whenever the session changes (login, logout, token refresh)
-    const syncSession = useCallback(async (session: Session | null) => {
-        if (!session?.user) {
-            setUser(null);
-            setRole(null);
-            setLoading(false);
-            return;
-        }
+  // Rehydrate from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (raw) {
+        const session: StoredSession = JSON.parse(raw);
+        setUser(session.profile);
+        setRole(roleFromProfile(session.profile));
+        if (session.clinic) setClinic(session.clinic);
+      }
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        setUser(session.user);
+  // ── signIn ─────────────────────────────────────────────────────────────────
 
-        // Fetch role from profiles — the only reliable source
-        const profileRole = await fetchRoleFromProfile(session.user.id);
-        setRole(profileRole);
-        setLoading(false);
-    }, []);
+  const signIn = async (
+    portal: LoginPortal,
+    email: string,
+    password: string
+  ): Promise<{ error: string | null }> => {
+    setLoading(true);
+    try {
+      // 1. Call the correct login endpoint
+      let tokens;
+      if (portal === "vet") {
+        tokens = await authService.loginVet({ email, password });
+      } else if (portal === "main_admin") {
+        tokens = await authService.loginAdmin({ email, password });
+      } else {
+        tokens = await authService.loginMinorAdmin({ email, password });
+      }
 
-    useEffect(() => {
-        // 1. Hydrate from existing session on mount
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            syncSession(session);
-        });
+      // 2. Fetch profile with the new access token
+      const profile = await authService.getMyProfile(tokens.access_token);
 
-        // 2. Subscribe to all future auth state changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-                syncSession(session);
-            }
-        );
+      // 3. For VET role, fetch the linked clinic details
+      let clinicDetails: ClinicDetails | undefined;
+      if (profile.role?.toUpperCase() === "VET" && profile.clinicId) {
+        clinicDetails = await authService.getClinicDetails(profile.clinicId);
+      }
 
-        return () => subscription.unsubscribe();
-    }, [syncSession]);
+      // 4. Persist session to localStorage
+      const session: StoredSession = {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        profile,
+        clinic: clinicDetails,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
-    // ─── signIn ───────────────────────────────────────────────────────────────
-    // Returns { error: null } on success, or { error: "message" } on failure.
-    // The caller does NOT need to manage session state — onAuthStateChange handles it.
-    const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-        setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // 5. Update state
+      setUser(profile);
+      setRole(roleFromProfile(profile));
+      setClinic(clinicDetails ?? null);
 
-        if (error) {
-            setLoading(false);
-            // Map Supabase raw errors to friendly messages
-            if (error.message.includes("Invalid login credentials")) {
-                return { error: "Incorrect email or password. Please try again." };
-            }
-            if (error.message.includes("Email not confirmed")) {
-                return { error: "Your email is not confirmed. Please check your inbox or disable email confirmation in Supabase." };
-            }
-            return { error: error.message };
-        }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err instanceof Error ? err.message : "Login failed. Please try again." };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // onAuthStateChange will fire and call syncSession, which sets role + loading
-        return { error: null };
-    };
+  // ── signOut ────────────────────────────────────────────────────────────────
 
-    // ─── signOut ──────────────────────────────────────────────────────────────
-    const signOut = async () => {
-        await supabase.auth.signOut();
-        // onAuthStateChange fires with null session → syncSession clears state
-    };
+  const signOut = async () => {
+    setUser(null);
+    setRole(null);
+    setClinic(null);
+    localStorage.removeItem(SESSION_KEY);
+  };
 
-    // ─── getToken ─────────────────────────────────────────────────────────────
-    // Used by API calls to attach the JWT Bearer token for Zero Trust validation
-    const getToken = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        return session?.access_token ?? null;
-    };
+  // ── getToken ───────────────────────────────────────────────────────────────
 
-    return (
-        <AuthContext.Provider value={{ user, role, loading, getToken, signIn, signOut }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const getToken = async (): Promise<string | null> => {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const session: StoredSession = JSON.parse(raw);
+      return session.access_token ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, role, clinic, loading, getToken, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
